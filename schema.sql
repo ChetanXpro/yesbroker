@@ -29,6 +29,9 @@ CREATE TABLE IF NOT EXISTS properties (
     image_urls TEXT[] DEFAULT '{}', -- Array of S3 URLs for property images (max 4)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_doc_signed BOOLEAN default false,
+    is_verified boolean default false,
+    verification_transaction_hash text,
     CONSTRAINT fk_owner
         FOREIGN KEY(owner_id)
         REFERENCES users(id)

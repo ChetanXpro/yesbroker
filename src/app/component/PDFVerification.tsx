@@ -1,4 +1,3 @@
-// components/PDFVerification.tsx
 "use client";
 import { loadWasm } from "@/app/libs/wasm";
 import React, { useState, useCallback, useMemo } from "react";

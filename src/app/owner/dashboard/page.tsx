@@ -1,6 +1,7 @@
 "use client";
 import { AddPropertyModal } from "@/app/component/AddPropertyModal";
-import { useState } from "react";
+import { PropertyImageSlider } from "@/app/component/PropertyImageSlider";
+import { useState, useEffect } from "react";
 
 // PDF Verification Components
 function PDFDropZone({ onFileProcessed, accept = ".pdf", label = "Property Documents" }: any) {
@@ -235,75 +236,95 @@ function PropertyDocumentUpload({ onDocumentVerified }: any) {
 }
 
 export default function OwnerDashboard() {
-    const [activeTab, setActiveTab] = useState("overview");
+    const [activeTab, setActiveTab] = useState("properties");
     const [showAddPropertyModal, setShowAddPropertyModal] = useState(false);
+    const [properties, setProperties] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [refreshKey, setRefreshKey] = useState(0);
 
-    // Mock data
-    const ownerData = {
-        name: "Rajesh Kumar",
-        kycStatus: "verified",
-        totalProperties: 3,
-        activeListings: 2,
-        totalInterests: 8,
-        pendingInterests: 3,
+    // Mock authentication - in real app, get from auth context
+    const mockAuthToken = () => {
+        // For demo purposes, create a mock token
+        if (!localStorage.getItem('auth_token')) {
+            localStorage.setItem('auth_token', 'mock-token-for-demo');
+        }
+        return localStorage.getItem('auth_token');
     };
 
-    const properties = [
-        {
-            id: 1,
-            title: "2BHK Apartment in Koramangala",
-            address: "Koramangala 5th Block, Bangalore",
-            rent: 25000,
-            status: "active",
-            interests: 4,
-            images: ["https://via.placeholder.com/300x200"],
-        },
-        {
-            id: 2,
-            title: "3BHK Villa in Whitefield",
-            address: "Whitefield, Bangalore",
-            rent: 45000,
-            status: "active",
-            interests: 2,
-            images: ["https://via.placeholder.com/300x200"],
-        },
-        {
-            id: 3,
-            title: "1BHK Studio in HSR Layout",
-            address: "HSR Layout Sector 2, Bangalore",
-            rent: 18000,
-            status: "draft",
-            interests: 0,
-            images: ["https://via.placeholder.com/300x200"],
-        },
-    ];
+    // Mock data for owner (in real app, get from authentication)
+    const ownerData = {
+        id: 1, // This should come from auth
+        name: "Property Owner",
+        kycStatus: "verified",
+        totalProperties: properties.length,
+        activeListings: properties.filter(p => p.status === 'available').length,
+        totalInterests: 0,
+        pendingInterests: 0,
+    };
 
-    const recentInterests = [
-        {
-            id: 1,
-            renterName: "Priya Sharma",
-            propertyTitle: "2BHK Apartment in Koramangala",
-            status: "pending",
-            date: "2 hours ago",
-            kycStatus: "verified",
-        },
-        {
-            id: 2,
-            renterName: "Amit Patel",
-            propertyTitle: "3BHK Villa in Whitefield",
-            status: "pending",
-            date: "1 day ago",
-            kycStatus: "verified",
-        },
-        {
-            id: 3,
-            renterName: "Sarah Johnson",
-            propertyTitle: "2BHK Apartment in Koramangala",
-            status: "accepted",
-            date: "3 days ago",
-            kycStatus: "verified",
-        },
-    ];
+    // Fetch properties from API
+    useEffect(() => {
+        fetchProperties();
+    }, [refreshKey]);
+
+    const fetchProperties = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            // In real app, get owner_id from authentication
+            const response = await fetch(`/api/properties?owner_id=${ownerData.id}`);
+            const result = await response.json();
+
+            if (result.success) {
+                setProperties(result.data);
+            } else {
+                setError(result.error || 'Failed to fetch properties');
+            }
+        } catch (err) {
+            setError('Network error while fetching properties');
+            console.error('Fetch error:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handlePropertyAdded = (propertyData: any) => {
+        console.log("Property added:", propertyData);
+        setShowAddPropertyModal(false);
+        // Refresh properties list
+        setRefreshKey(prev => prev + 1);
+    };
+
+    const handleDeleteProperty = async (propertyId: number) => {
+        if (!window.confirm('Are you sure you want to delete this property?')) {
+            return;
+        }
+
+        try {
+            const token = mockAuthToken();
+            const response = await fetch(`/api/properties/${propertyId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Refresh properties list
+                setRefreshKey(prev => prev + 1);
+            } else {
+                alert(result.error || 'Failed to delete property');
+            }
+        } catch (err) {
+            alert('Network error while deleting property');
+            console.error('Delete error:', err);
+        }
+    };
+
+    const recentInterests: any[] = [];
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -486,18 +507,154 @@ export default function OwnerDashboard() {
                         </nav>
                     </div>
                 </div>
+                {/* Tab Content */}
+                <div className="container mx-auto px-6">
+                    {activeTab === 'properties' && (
+                        <div>
+                            {loading ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <svg className="animate-spin h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                    </svg>
+                                    <span className="ml-2 text-gray-600">Loading properties...</span>
+                                </div>
+                            ) : error ? (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                    <p className="text-red-700">{error}</p>
+                                    <button
+                                        onClick={() => setRefreshKey(prev => prev + 1)}
+                                        className="mt-2 text-red-600 hover:text-red-700 font-medium"
+                                    >
+                                        Try Again
+                                    </button>
+                                </div>
+                            ) : properties.length === 0 ? (
+                                <div className="bg-white rounded-xl shadow-sm border p-12 text-center">
+                                    <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                    </svg>
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Properties Yet</h3>
+                                    <p className="text-gray-600 mb-4">Start by adding your first property listing</p>
+                                    <button
+                                        onClick={() => setShowAddPropertyModal(true)}
+                                        className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+                                    >
+                                        Add Your First Property
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {properties.map((property) => (
+                                        <div key={property.id} className="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-lg transition-shadow">
+                                            {/* Property Image Slider */}
+                                            <div className="relative">
+                                                <PropertyImageSlider
+                                                    images={property.image_urls || []}
+                                                    title={property.title}
+                                                    className="rounded-t-xl"
+                                                />
+
+                                                {/* Status Badge */}
+                                                <div className={`absolute top-3 left-3 px-2 py-1 rounded text-xs font-medium shadow-sm ${
+                                                    property.status === 'available'
+                                                        ? 'bg-green-100 text-green-800 border border-green-200'
+                                                        : property.status === 'rented'
+                                                        ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                                                        : 'bg-gray-100 text-gray-800 border border-gray-200'
+                                                }`}>
+                                                    {property.status}
+                                                </div>
+                                            </div>
+
+                                            {/* Property Details */}
+                                            <div className="p-4">
+                                                <h3 className="font-semibold text-gray-900 mb-1">{property.title}</h3>
+                                                <p className="text-sm text-gray-600 mb-2">{property.address}</p>
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <span className="text-2xl font-bold text-indigo-600">₹{property.price}</span>
+                                                    <span className="text-sm text-gray-500">/month</span>
+                                                </div>
+                                                <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">
+                                                    {property.bedrooms && (
+                                                        <div className="flex items-center">
+                                                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                                                            </svg>
+                                                            {property.bedrooms} Bed
+                                                        </div>
+                                                    )}
+                                                    {property.bathrooms && (
+                                                        <div className="flex items-center">
+                                                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h.01M12 7h.01M16 7h.01M12 12h.01M8 16h.01M12 16h.01M16 16h.01"></path>
+                                                            </svg>
+                                                            {property.bathrooms} Bath
+                                                        </div>
+                                                    )}
+                                                    {property.square_feet && (
+                                                        <div className="flex items-center">
+                                                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                                                            </svg>
+                                                            {property.square_feet} sqft
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Action Buttons */}
+                                                <div className="flex space-x-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            // TODO: Implement edit functionality
+                                                            alert('Edit functionality coming soon!');
+                                                        }}
+                                                        className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteProperty(property.id)}
+                                                        className="flex-1 px-3 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {activeTab === 'overview' && (
+                        <div className="bg-white rounded-xl shadow-sm border p-6">
+                            <h2 className="text-lg font-semibold text-gray-900 mb-4">Dashboard Overview</h2>
+                            <p className="text-gray-600">Welcome to your property management dashboard. Use the navigation above to manage your properties and view interest from potential renters.</p>
+                        </div>
+                    )}
+
+                    {activeTab === 'interests' && (
+                        <div className="bg-white rounded-xl shadow-sm border p-6">
+                            <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Interests</h2>
+                            {recentInterests.length === 0 ? (
+                                <p className="text-gray-600">No interests yet. Once you list properties, renter interests will appear here.</p>
+                            ) : (
+                                <div className="space-y-4">
+                                    {/* Interest list would go here */}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Add Property Modal */}
             {showAddPropertyModal && (
                 <AddPropertyModal
                     onClose={() => setShowAddPropertyModal(false)}
-                    onSubmit={(propertyData: any) => {
-                        console.log("Property added:", propertyData);
-                        setShowAddPropertyModal(false);
-                        // In real app, this would update the properties list
-                        alert("Property added successfully!");
-                    }}
+                    onSubmit={handlePropertyAdded}
                 />
             )}
         </div>
