@@ -186,7 +186,7 @@ export default function SelfLogin() {
 
             const app = new SelfAppBuilder({
                 version: 2,
-                appName: "YesBroker",
+                appName: "ZkBroker",
                 scope: "self-workshop",
                 endpoint: verifyEndpoint,
                 logoBase64: "https://i.postimg.cc/mrmVf9hm/self.png",

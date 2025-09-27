@@ -24,6 +24,9 @@ use zkpdf_template_lib::PublicValuesStruct;
 
 pub const ZKPDF_ELF: &[u8] = include_elf!("zkpdf-template-program");
 
+// Hardcoded endpoint for status updates
+const STATUS_UPDATE_ENDPOINT: &str = "https://yesbroker-green.vercel.app/api/webhook/property-verification";
+
 // Define the contract interface using alloy's sol! macro
 sol! {
     #[allow(missing_docs)]
@@ -38,12 +41,23 @@ sol! {
 #[derive(Deserialize)]
 struct ProofRequest {
     pdf_bytes: Vec<u8>,
+    property_id: String,
 }
 
 #[derive(Serialize)]
 struct VerifyResponse {
     valid: bool,
     error: Option<String>,
+}
+
+#[derive(Serialize, Debug)]
+struct StatusUpdateRequest {
+    status: bool,
+    transaction_hash: Option<String>,
+    property_id: String,
+    property_number: Option<String>,
+    owner_name: Option<String>,
+    signature_valid: Option<bool>,
 }
 
 /// Enum representing the available proof systems
@@ -58,7 +72,7 @@ async fn prove(Json(body): Json<ProofRequest>) -> Result<Json<SP1ProofWithPublic
     let client = ProverClient::from_env();
     let (pk, vk) = client.setup(ZKPDF_ELF);
 
-    let ProofRequest { pdf_bytes } = body;
+    let ProofRequest { pdf_bytes, property_id } = body;
 
     let mut stdin = SP1Stdin::new();
     stdin.write(&pdf_bytes);
@@ -69,16 +83,42 @@ async fn prove(Json(body): Json<ProofRequest>) -> Result<Json<SP1ProofWithPublic
         .run()
         .map_err(|e| format!("Proof generation failed: {}", e))?;
 
+    // Extract property values from the proof
+    let bytes = proof.public_values.as_slice();
+    let decoded = PublicValuesStruct::abi_decode(bytes).unwrap();
+    let property_number = Some(decoded.property_number.clone());
+    let owner_name = Some(decoded.owner_name.clone());
+    let signature_valid = Some(decoded.signature_valid);
+
     // Call the contract to verify and store the property proof
-    match verify_and_store_property(&proof, &vk, ProofSystem::Groth16).await {
+    let (status, transaction_hash) = match verify_and_store_property(&proof, &vk, ProofSystem::Groth16).await {
         Ok(receipt) => {
             println!("✅ Successfully verified and stored property proof on-chain!");
             println!("   Transaction Hash: {:?}", receipt.transaction_hash);
+            (true, Some(format!("{:?}", receipt.transaction_hash)))
         }
         Err(e) => {
             println!("❌ Failed to verify and store property proof: {}", e);
-            return Err(format!("Contract interaction failed: {}", e));
+            (false, None)
         }
+    };
+
+    // Make POST request to status update endpoint
+    if let Err(e) = send_status_update(
+        status, 
+        transaction_hash.clone(), 
+        property_id.clone(),
+        property_number.clone(),
+        owner_name.clone(),
+        signature_valid
+    ).await {
+        println!("⚠️ Failed to send status update: {}", e);
+        // Continue execution even if status update fails
+    }
+
+    // Return error if blockchain interaction failed
+    if !status {
+        return Err("Contract interaction failed".to_string());
     }
 
     Ok(Json(proof))
@@ -142,6 +182,45 @@ async fn main() {
 
     let listener = TcpListener::bind(addr).await.unwrap();
     serve(listener, app.into_make_service()).await.unwrap();
+}
+
+/// Send status update to the hardcoded endpoint
+async fn send_status_update(
+    status: bool,
+    transaction_hash: Option<String>,
+    property_id: String,
+    property_number: Option<String>,
+    owner_name: Option<String>,
+    signature_valid: Option<bool>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let client = reqwest::Client::new();
+    
+    let request_body = StatusUpdateRequest {
+        status,
+        transaction_hash,
+        property_id,
+        property_number,
+        owner_name,
+        signature_valid,
+    };
+
+    println!("Sending status update to: {}", STATUS_UPDATE_ENDPOINT);
+    println!("Request body: {:?}", serde_json::to_string(&request_body)?);
+
+    let response = client
+        .post(STATUS_UPDATE_ENDPOINT)
+        .json(&request_body)
+        .send()
+        .await?;
+
+    if response.status().is_success() {
+        println!("✅ Status update sent successfully");
+    } else {
+        println!("❌ Status update failed with status: {}", response.status());
+        return Err(format!("Status update failed with status: {}", response.status()).into());
+    }
+
+    Ok(())
 }
 
 /// Call the contract to verify and store the property proof.

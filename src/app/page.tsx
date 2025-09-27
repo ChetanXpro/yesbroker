@@ -174,9 +174,9 @@ export default function Home() {
                     </div>
                 </div>
 
-                {/* Stats Section */}
+                {/* Stats Sectionn */}
                 <div className="mt-20 text-center">
-                    <h2 className="text-3xl font-bold text-gray-800 mb-8">Why Choose YesBroker?</h2>
+                    <h2 className="text-3xl font-bold text-gray-800 mb-8">Why Choose ZkBroker?</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                         <div>
                             <div className="text-3xl font-bold text-indigo-600">100%</div>
