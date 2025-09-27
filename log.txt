@@ -1,0 +1,3 @@
+- show owner and renter, verify kyc, owner verify he owner property, 
+- to renter show all owner with properly, kind of no broker.
+- owner can see all interest
