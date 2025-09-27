@@ -3,8 +3,8 @@ pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
 import {stdJson} from "forge-std/StdJson.sol";
-import {CertificateVerifier} from "../src/GSTVerifier.sol";
-import {SP1VerifierGateway} from "sp1-contracts/SP1VerifierGateway.sol";
+import {CertificateVerifier} from "../src/PropertyVerifier.sol";
+import {SP1VerifierGateway} from "@sp1-contracts/SP1VerifierGateway.sol";
 
 struct SP1ProofFixtureJson {
     string gstNumber;
@@ -49,9 +49,6 @@ contract CertificateVerifierGroth16Test is Test {
         verifier = address(new SP1VerifierGateway(address(1)));
         certificateVerifier = new CertificateVerifier(
             verifier,
-            bytes32(
-                0x00506fd89abddc3ed51a6a3a5e0f7bd53b484e2877ae0df10969838991cff1f8
-            ),
             bytes32(
                 0x00506fd89abddc3ed51a6a3a5e0f7bd53b484e2877ae0df10969838991cff1f9
             )
@@ -124,7 +121,7 @@ contract GSTVerifierPlonkTest is Test {
     using stdJson for string;
 
     address verifier;
-    GSTVerifier public certificateVerifier;
+    CertificateVerifier public certificateVerifier;
 
     function loadFixture() public view returns (SP1ProofFixtureJson memory) {
         string memory root = vm.projectRoot();
@@ -141,9 +138,6 @@ contract GSTVerifierPlonkTest is Test {
         verifier = address(new SP1VerifierGateway(address(1)));
         certificateVerifier = new CertificateVerifier(
             verifier,
-            bytes32(
-                0x00506fd89abddc3ed51a6a3a5e0f7bd53b484e2877ae0df10969838991cff1f8
-            ),
             bytes32(
                 0x00506fd89abddc3ed51a6a3a5e0f7bd53b484e2877ae0df10969838991cff1f9
             )

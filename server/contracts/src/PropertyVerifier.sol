@@ -63,7 +63,6 @@ contract CertificateVerifier {
 
     constructor(address _verifier, bytes32 _propertyProgramVKey) {
         verifier = _verifier;
-     
         propertyProgramVKey = _propertyProgramVKey;
     }
 

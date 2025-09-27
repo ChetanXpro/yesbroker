@@ -3,9 +3,11 @@ import pool from "../../../../libs/db";
 import { uploadToS3, deleteFromS3, generateImageKey } from "../../../../libs/s3";
 
 // POST - Upload images for a property
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const propertyId = parseInt(params.id);
+        // Await the params Promise
+        const { id } = await params;
+        const propertyId = parseInt(id);
 
         // Check if property exists and get owner_id
         const propertyCheck = await pool.query(
@@ -141,9 +143,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 }
 
 // DELETE - Delete specific images from a property
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
     try {
-        const propertyId = parseInt(params.id);
+        // Await the params Promise
+        const { id } = await params;
+        const propertyId = parseInt(id);
         const { searchParams } = new URL(request.url);
         const imageUrl = searchParams.get("url");
 

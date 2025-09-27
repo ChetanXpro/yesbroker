@@ -1,9 +1,11 @@
--- Create renter table
-CREATE TABLE IF NOT EXISTS renter (
+-- Create users table
+CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    wallet_address VARCHAR(42) UNIQUE NOT NULL, -- Ethereum address
     phone VARCHAR(20),
+    verified BOOLEAN DEFAULT FALSE,
+    user_type VARCHAR(10) NOT NULL CHECK (user_type IN ('renter', 'owner')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -29,18 +31,33 @@ CREATE TABLE IF NOT EXISTS properties (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_owner
         FOREIGN KEY(owner_id)
-        REFERENCES renter(id)
+        REFERENCES users(id)
         ON DELETE CASCADE
 );
 
--- Create index on owner_id for faster queries
+-- Create property_interests table
+CREATE TABLE IF NOT EXISTS property_interests (
+    id SERIAL PRIMARY KEY,
+    property_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_property
+        FOREIGN KEY(property_id)
+        REFERENCES properties(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_user
+        FOREIGN KEY(user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+    -- Ensure one user can only show interest once per property
+    UNIQUE(property_id, user_id)
+);
+
+-- Create indexes for better performance
+CREATE INDEX idx_users_wallet_address ON users(wallet_address);
+CREATE INDEX idx_users_verified ON users(verified);
 CREATE INDEX idx_properties_owner_id ON properties(owner_id);
-
--- Create index on status for faster filtering
 CREATE INDEX idx_properties_status ON properties(status);
-
--- Create index on city for location-based queries
 CREATE INDEX idx_properties_city ON properties(city);
-
--- Create index for properties with images
-CREATE INDEX idx_properties_has_images ON properties USING GIN (image_urls) WHERE array_length(image_urls, 1) > 0;
+CREATE INDEX idx_property_interests_property_id ON property_interests(property_id);
+CREATE INDEX idx_property_interests_user_id ON property_interests(user_id);
