@@ -1,5 +1,6 @@
 "use client";
 import { AddPropertyModal } from "@/app/component/AddPropertyModal";
+import { PropertyImageSlider } from "@/app/component/PropertyImageSlider";
 import { useState, useEffect } from "react";
 
 // PDF Verification Components
@@ -546,32 +547,21 @@ export default function OwnerDashboard() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {properties.map((property) => (
                                         <div key={property.id} className="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-lg transition-shadow">
-                                            {/* Property Image */}
-                                            <div className="relative h-48 bg-gray-200">
-                                                {property.image_urls && property.image_urls.length > 0 ? (
-                                                    <img
-                                                        src={property.image_urls[0]}
-                                                        alt={property.title}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center">
-                                                        <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-                                                        </svg>
-                                                    </div>
-                                                )}
-                                                {property.image_urls && property.image_urls.length > 1 && (
-                                                    <div className="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                                                        +{property.image_urls.length - 1} more
-                                                    </div>
-                                                )}
-                                                <div className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium ${
+                                            {/* Property Image Slider */}
+                                            <div className="relative">
+                                                <PropertyImageSlider
+                                                    images={property.image_urls || []}
+                                                    title={property.title}
+                                                    className="rounded-t-xl"
+                                                />
+
+                                                {/* Status Badge */}
+                                                <div className={`absolute top-3 left-3 px-2 py-1 rounded text-xs font-medium shadow-sm ${
                                                     property.status === 'available'
-                                                        ? 'bg-green-100 text-green-800'
+                                                        ? 'bg-green-100 text-green-800 border border-green-200'
                                                         : property.status === 'rented'
-                                                        ? 'bg-blue-100 text-blue-800'
-                                                        : 'bg-gray-100 text-gray-800'
+                                                        ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                                                        : 'bg-gray-100 text-gray-800 border border-gray-200'
                                                 }`}>
                                                     {property.status}
                                                 </div>

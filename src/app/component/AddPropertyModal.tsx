@@ -56,20 +56,23 @@ export function AddPropertyModal({ onClose, onSubmit }: any) {
                 bathrooms: parseInt(formData.bathrooms),
                 square_feet: formData.square_feet ? parseInt(formData.square_feet) : 100,
                 property_type: formData.property_type,
-                status: 'available',
+                status: "available",
+                is_doc_signed: false,
+                is_verified: false,
+                verification_transaction_hash: null,
             };
 
             const result = await api.createProperty(propertyData);
 
             if (result.success) {
-                setCreatedPropertyId(result.data?.id);
+                setCreatedPropertyId(result.data?.id || null);
                 setCurrentStep(2); // Move to image upload step
             } else {
-                setError(result.error || 'Failed to create property');
+                setError(result.error || "Failed to create property");
             }
         } catch (err) {
-            setError('Network error. Please try again.');
-            console.error('Property creation error:', err);
+            setError("Network error. Please try again.");
+            console.error("Property creation error:", err);
         } finally {
             setIsSubmitting(false);
         }
@@ -113,10 +116,10 @@ export function AddPropertyModal({ onClose, onSubmit }: any) {
             images: uploadedImages,
             documentVerification: documentVerification
                 ? {
-                      isVerified: documentVerification.isValid,
-                      fileName: documentVerification.file?.name,
-                      verificationResult: documentVerification.result,
-                  }
+                    isVerified: documentVerification.isValid,
+                    fileName: documentVerification.file?.name,
+                    verificationResult: documentVerification.result,
+                }
                 : null,
         };
         onSubmit(submissionData);
@@ -141,37 +144,40 @@ export function AddPropertyModal({ onClose, onSubmit }: any) {
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
                     <div>
                         <h2 className="text-xl font-bold text-gray-900">
-                            {currentStep === 1 ? 'Property Details' :
-                             currentStep === 2 ? 'Upload Images' :
-                             'Document Verification'}
+                            {currentStep === 1 ? "Property Details" :
+                                currentStep === 2 ? "Upload Images" :
+                                    "Document Verification"}
                         </h2>
                         <div className="flex items-center mt-2 space-x-2">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                                currentStep >= 1 ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600'
-                            }`}>
+                            <div
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                                    currentStep >= 1 ? "bg-indigo-600 text-white" : "bg-gray-200 text-gray-600"
+                                }`}>
                                 1
                             </div>
                             <div className={`w-12 h-1 ${
-                                currentStep >= 2 ? 'bg-indigo-600' : 'bg-gray-200'
+                                currentStep >= 2 ? "bg-indigo-600" : "bg-gray-200"
                             }`}></div>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                                currentStep >= 2 ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600'
-                            }`}>
+                            <div
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                                    currentStep >= 2 ? "bg-indigo-600 text-white" : "bg-gray-200 text-gray-600"
+                                }`}>
                                 2
                             </div>
                             <div className={`w-12 h-1 ${
-                                currentStep >= 3 ? 'bg-indigo-600' : 'bg-gray-200'
+                                currentStep >= 3 ? "bg-indigo-600" : "bg-gray-200"
                             }`}></div>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                                currentStep >= 3 ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600'
-                            }`}>
+                            <div
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                                    currentStep >= 3 ? "bg-indigo-600 text-white" : "bg-gray-200 text-gray-600"
+                                }`}>
                                 3
                             </div>
                         </div>
                         <div className="text-sm text-gray-500 mt-1">
-                            {currentStep === 1 ? 'Step 1 of 3: Basic Information' :
-                             currentStep === 2 ? 'Step 2 of 3: Property Images' :
-                             'Step 3 of 3: Document Verification'}
+                            {currentStep === 1 ? "Step 1 of 3: Basic Information" :
+                                currentStep === 2 ? "Step 2 of 3: Property Images" :
+                                    "Step 3 of 3: Document Verification"}
                         </div>
                     </div>
                     <button
@@ -379,7 +385,8 @@ export function AddPropertyModal({ onClose, onSubmit }: any) {
                         <div>
                             <div className="mb-6">
                                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Upload Property Images</h3>
-                                <p className="text-gray-600 text-sm mb-4">Add up to 4 high-quality images of your property. Good photos help attract more potential renters.</p>
+                                <p className="text-gray-600 text-sm mb-4">Add up to 4 high-quality images of your
+                                    property. Good photos help attract more potential renters.</p>
                             </div>
 
                             <ImageUpload
@@ -391,11 +398,14 @@ export function AddPropertyModal({ onClose, onSubmit }: any) {
                             {uploadedImages.length > 0 && (
                                 <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
                                     <div className="flex items-center">
-                                        <svg className="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                                        <svg className="w-5 h-5 text-green-600 mr-2" fill="currentColor"
+                                             viewBox="0 0 20 20">
+                                            <path fillRule="evenodd"
+                                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                  clipRule="evenodd"></path>
                                         </svg>
                                         <span className="text-green-800 font-medium">
-                                            {uploadedImages.length} image{uploadedImages.length > 1 ? 's' : ''} uploaded successfully
+                                            {uploadedImages.length} image{uploadedImages.length > 1 ? "s" : ""} uploaded successfully
                                         </span>
                                     </div>
                                 </div>
@@ -407,8 +417,10 @@ export function AddPropertyModal({ onClose, onSubmit }: any) {
                     {currentStep === 3 && (
                         <div>
                             <div className="mb-6">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Property Document Verification</h3>
-                                <p className="text-gray-600 text-sm mb-4">Upload your property ownership documents for verification. This step is required to complete your listing.</p>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Property Document
+                                    Verification</h3>
+                                <p className="text-gray-600 text-sm mb-4">Upload your property ownership documents for
+                                    verification. This step is required to complete your listing.</p>
                             </div>
 
                             <PropertyDocumentUpload onDocumentVerified={handleDocumentVerified} />
@@ -418,22 +430,31 @@ export function AddPropertyModal({ onClose, onSubmit }: any) {
                                     {documentVerification.isValid ? (
                                         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                                             <div className="flex items-center">
-                                                <svg className="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                                                <svg className="w-5 h-5 text-green-600 mr-2" fill="currentColor"
+                                                     viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd"
+                                                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                          clipRule="evenodd"></path>
                                                 </svg>
                                                 <span className="text-green-800 font-medium">Document Verified Successfully</span>
                                             </div>
-                                            <p className="text-green-700 text-sm mt-1">Your property listing is ready to be published!</p>
+                                            <p className="text-green-700 text-sm mt-1">Your property listing is ready to
+                                                be published!</p>
                                         </div>
                                     ) : (
                                         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                                             <div className="flex items-center">
-                                                <svg className="w-5 h-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"></path>
+                                                <svg className="w-5 h-5 text-red-600 mr-2" fill="currentColor"
+                                                     viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd"
+                                                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                                          clipRule="evenodd"></path>
                                                 </svg>
-                                                <span className="text-red-800 font-medium">Document Verification Failed</span>
+                                                <span
+                                                    className="text-red-800 font-medium">Document Verification Failed</span>
                                             </div>
-                                            <p className="text-red-700 text-sm mt-1">Please upload a valid digitally signed document to complete verification.</p>
+                                            <p className="text-red-700 text-sm mt-1">Please upload a valid digitally
+                                                signed document to complete verification.</p>
                                         </div>
                                     )}
                                 </div>
@@ -441,12 +462,17 @@ export function AddPropertyModal({ onClose, onSubmit }: any) {
 
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
                                 <div className="flex items-start">
-                                    <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"></path>
+                                    <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-3" fill="currentColor"
+                                         viewBox="0 0 20 20">
+                                        <path fillRule="evenodd"
+                                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                              clipRule="evenodd"></path>
                                     </svg>
                                     <div>
                                         <h4 className="font-medium text-blue-800 mb-1">Why Document Verification?</h4>
-                                        <p className="text-sm text-blue-700">Document verification ensures property ownership authenticity and builds trust with potential renters. Only digitally signed documents can be verified.</p>
+                                        <p className="text-sm text-blue-700">Document verification ensures property
+                                            ownership authenticity and builds trust with potential renters. Only
+                                            digitally signed documents can be verified.</p>
                                     </div>
                                 </div>
                             </div>
@@ -484,13 +510,15 @@ export function AddPropertyModal({ onClose, onSubmit }: any) {
                                     {isSubmitting ? (
                                         <div className="flex items-center">
                                             <svg className="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                                <circle className="opacity-25" cx="12" cy="12" r="10"
+                                                        stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor"
+                                                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                                             </svg>
                                             Creating...
                                         </div>
                                     ) : (
-                                        'Next: Upload Images'
+                                        "Next: Upload Images"
                                     )}
                                 </button>
                             )}

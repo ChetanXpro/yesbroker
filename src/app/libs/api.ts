@@ -26,7 +26,7 @@ interface Property {
     updated_at: string;
     is_doc_signed: boolean;
     is_verified: boolean;
-    verification_transaction_hash: string;
+    verification_transaction_hash: string | null;
 }
 
 interface PropertyInterest {
