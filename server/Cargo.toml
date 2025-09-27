@@ -11,3 +11,6 @@ alloy-sol-types = "1.0"
 zkpdf-lib = { git = "https://github.com/privacy-ethereum/zkpdf", subdir = "circuits/lib" }
 regex = "1.10"
 alloy-primitives = "0.8"
+ethers = { version = "2.0", features = ["abigen", "ws"] }
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0"

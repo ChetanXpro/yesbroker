@@ -5,14 +5,55 @@ use axum::{
     serve, Json, Router,
 };
 use clap::ValueEnum;
+use ethers::{
+    contract::{abigen, Contract},
+    prelude::*,
+    providers::{Http, Provider},
+    types::{Address, Bytes},
+};
 use serde::{Deserialize, Serialize};
-use sp1_sdk::{include_elf, ProverClient, SP1ProofWithPublicValues, SP1Stdin};
+use sp1_sdk::network::tee::client::Client;
+use sp1_sdk::{
+    include_elf, EnvProver, ProverClient, SP1ProofWithPublicValues, SP1ProvingKey, SP1Stdin,
+};
 use sp1_sdk::{HashableKey, SP1VerifyingKey};
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use std::sync::Arc;
 use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use zkpdf_template_lib::PublicValuesStruct;
+
+// ABI for the PdfVerifier contract
+abigen!(
+    PdfVerifier,
+    r#"[
+        function verifyPdfProof(bytes calldata _publicValues, bytes calldata _proofBytes) public view returns (bool)
+    ]"#
+);
+
+// Alternative function if you want to call with raw hex strings directly
+async fn verify_with_raw_hex(
+    provider_url: &str,
+    contract_address: &str,
+    public_values_hex: &str,
+    proof_bytes_hex: &str,
+) -> Result<bool, Box<dyn std::error::Error>> {
+    let provider = Provider::<Http>::try_from(provider_url)?;
+    let client = Arc::new(provider);
+
+    let contract_addr: Address = contract_address.parse()?;
+    let contract = PdfVerifier::new(contract_addr, client);
+
+    let public_values: Bytes = public_values_hex.parse()?;
+    let proof_bytes: Bytes = proof_bytes_hex.parse()?;
+
+    let result = contract
+        .verify_pdf_proof(public_values, proof_bytes)
+        .call()
+        .await?;
+    Ok(result)
+}
 
 pub const ZKPDF_ELF: &[u8] = include_elf!("zkpdf-template-program");
 
@@ -48,10 +89,29 @@ struct SP1PropertyProofFixture {
     proof: String,
 }
 
-async fn prove(Json(body): Json<ProofRequest>) -> Result<Json<SP1ProofWithPublicValues>, String> {
+async fn prove_and_register(
+    Json(body): Json<ProofRequest>,
+) -> Result<Json<SP1ProofWithPublicValues>, String> {
     let client = ProverClient::from_env();
     let (pk, vk) = client.setup(ZKPDF_ELF);
+    let proof = prove(Json(body), pk, client).await?;
+    let fixture = create_proof_fixture(&proof, &vk, ProofSystem::Groth16)?;
+    match verify_with_raw_hex(
+        &std::env::var("RPC_URL")?,
+        &std::env::var("VERIFIER_CONTRACT")?,
+        &fixture.public_values,
+        &fixture.proof,
+    )? {
+        true => Ok(proof),
+        false => Err(String::from("Proof verification failed on chain")),
+    }
+}
 
+async fn prove(
+    Json(body): Json<ProofRequest>,
+    pk: SP1ProvingKey,
+    client: EnvProver,
+) -> Result<Json<SP1ProofWithPublicValues>, String> {
     let ProofRequest { pdf_bytes } = body;
 
     let mut stdin = SP1Stdin::new();
@@ -62,8 +122,6 @@ async fn prove(Json(body): Json<ProofRequest>) -> Result<Json<SP1ProofWithPublic
         .groth16()
         .run()
         .map_err(|e| format!("Proof generation failed: {}", e))?;
-
-    create_proof_fixture(&proof, &vk, ProofSystem::Groth16);
 
     Ok(Json(proof))
 }
@@ -130,7 +188,7 @@ fn create_proof_fixture(
     proof: &SP1ProofWithPublicValues,
     vk: &SP1VerifyingKey,
     system: ProofSystem,
-) {
+) -> Result<SP1PropertyProofFixture, String> {
     // Deserialize the public values.
     let bytes = proof.public_values.as_slice();
     let decoded = PublicValuesStruct::abi_decode(bytes).unwrap();
@@ -169,4 +227,6 @@ fn create_proof_fixture(
         serde_json::to_string_pretty(&fixture).unwrap(),
     )
     .expect("failed to write fixture");
+
+    Ok(fixture)
 }
