@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS properties (
     property_type VARCHAR(50), -- apartment, house, condo, etc.
     status VARCHAR(50) DEFAULT 'available', -- available, rented, maintenance
     owner_id INTEGER NOT NULL,
+    image_urls TEXT[] DEFAULT '{}', -- Array of S3 URLs for property images (max 4)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_owner
@@ -40,3 +41,6 @@ CREATE INDEX idx_properties_status ON properties(status);
 
 -- Create index on city for location-based queries
 CREATE INDEX idx_properties_city ON properties(city);
+
+-- Create index for properties with images
+CREATE INDEX idx_properties_has_images ON properties USING GIN (image_urls) WHERE array_length(image_urls, 1) > 0;
