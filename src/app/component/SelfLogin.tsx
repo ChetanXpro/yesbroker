@@ -52,17 +52,17 @@ export default function SelfLogin() {
             setIsLoading(true);
 
             // Try the existing session endpoint
-            const response = await api.login(walletAddress);
+            const response: any = await api.login(walletAddress);
 
             if (response.success) {
                 // User exists and is verified - set auth and redirect
                 setAuthData({
-                    token: response.data.token,
-                    user: response.data.user,
+                    token: response?.token,
+                    user: response?.user,
                 });
 
                 // Redirect to appropriate page
-                const redirectTo = response.data.redirect || "/dashboard";
+                const redirectTo = response.user.redirect || "/dashboard";
                 setTimeout(() => {
                     router.push(redirectTo);
                 }, 1000);
@@ -186,7 +186,7 @@ export default function SelfLogin() {
                 version: 2,
                 appName: "YesBroker",
                 scope: "self-workshop",
-                endpoint: `https://crafts-checking-bridal-camcorders.trycloudflare.com/api/verify`,
+                endpoint: `https://needed-removing-scotia-hobbies.trycloudflare.com/api/verify`,
                 logoBase64: "https://i.postimg.cc/mrmVf9hm/self.png",
                 userId: walletAddress,
                 endpointType: "https",

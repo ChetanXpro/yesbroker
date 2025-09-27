@@ -23,36 +23,49 @@ function verifyToken(request: NextRequest) {
 export async function GET(request: NextRequest) {
     try {
         const searchParams = request.nextUrl.searchParams;
-        const ownerId = searchParams.get("owner_id");
-        const status = searchParams.get("status") || "available";
+        const ownerIdParam = searchParams.get("owner_id");
+        const status = searchParams.get("status");
         const city = searchParams.get("city");
 
-        let query =
-            "SELECT p.*, u.name as owner_name FROM properties p LEFT JOIN users u ON p.owner_id = u.id WHERE 1=1";
+        let query = "SELECT * FROM properties WHERE 1=1";
         const params: any[] = [];
         let paramCount = 1;
 
-        if (ownerId) {
-            query += ` AND p.owner_id = $${paramCount}`;
+        if (ownerIdParam) {
+            const ownerId = parseInt(ownerIdParam);
+            if (isNaN(ownerId)) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        error: "Invalid owner_id parameter",
+                    },
+                    { status: 400 }
+                );
+            }
+            query += ` AND owner_id = $${paramCount}`;
             params.push(ownerId);
             paramCount++;
         }
 
         if (status) {
-            query += ` AND p.status = $${paramCount}`;
+            query += ` AND status = $${paramCount}`;
             params.push(status);
             paramCount++;
         }
 
         if (city) {
-            query += ` AND p.city ILIKE $${paramCount}`;
+            query += ` AND city ILIKE $${paramCount}`;
             params.push(`%${city}%`);
             paramCount++;
         }
 
-        query += " ORDER BY p.created_at DESC";
+        query += " ORDER BY created_at DESC";
+
+        console.log("Executing query:", query, "with params:", params);
 
         const result = await pool.query(query, params);
+
+        console.log("Query result:", result.rowCount, "rows found");
 
         return NextResponse.json({
             success: true,

@@ -7,7 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "hackathon-secret-key";
 
 const selfBackendVerifier = new SelfBackendVerifier(
     "self-workshop",
-    "https://cars-allows-trails-foam.trycloudflare.com/api/verify",
+    "https://needed-removing-scotia-hobbies.trycloudflare.com/api/verify",
     false,
     AllIds,
     new DefaultConfigStore({
