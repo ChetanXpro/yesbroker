@@ -177,31 +177,12 @@ export default function SelfLogin() {
         localStorage.removeItem("wallet_was_connected");
     };
 
-    const getAppUrl = () => {
-        if (typeof window !== "undefined") {
-            // In browser, use current window location
-            return window.location.origin;
-        }
-
-        // For SSR, these will be undefined, but that's ok since
-        // this component is client-side only
-        if (process.env.NEXT_PUBLIC_APP_URL) {
-            return process.env.NEXT_PUBLIC_APP_URL;
-        }
-
-        if (process.env.VERCEL_URL) {
-            return `https://${process.env.VERCEL_URL}`;
-        }
-
-        // Fallback for local development
-        return "http://localhost:3000";
-    };
     const initializeSelfApp = async () => {
         try {
             setIsLoading(true);
             setError("");
-            const baseUrl = getAppUrl();
-            const verifyEndpoint = `${baseUrl}/api/verify`;
+
+            const verifyEndpoint = `https://yesbroker-green.vercel.app/api/verify`;
 
             const app = new SelfAppBuilder({
                 version: 2,
