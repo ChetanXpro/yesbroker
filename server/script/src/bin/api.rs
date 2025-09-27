@@ -97,11 +97,14 @@ async fn prove_and_register(
     let proof = prove(Json(body), pk, client).await?;
     let fixture = create_proof_fixture(&proof, &vk, ProofSystem::Groth16)?;
     match verify_with_raw_hex(
-        &std::env::var("RPC_URL")?,
-        &std::env::var("VERIFIER_CONTRACT")?,
+        &std::env::var("RPC_URL").expect("Failed to read RPC_URL env variable"),
+        &std::env::var("VERIFIER_CONTRACT").expect("Failed to read VERIFIER_CONTRACT env variable"),
         &fixture.public_values,
         &fixture.proof,
-    )? {
+    )
+    .await
+    .expect("failed to verify proof on chain")
+    {
         true => Ok(proof),
         false => Err(String::from("Proof verification failed on chain")),
     }
