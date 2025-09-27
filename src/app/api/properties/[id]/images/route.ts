@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "../../../../libs/db";
-import { uploadToS3, deleteFromS3, generateImageKey } from "../../../../libs/s3";
+import { deleteFromS3, generateImageKey, uploadToS3 } from "@/app/libs/s3";
 
 // POST - Upload images for a property
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -88,8 +88,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             const imageIndex = currentImageCount + index + 1;
             const key = generateImageKey(ownerId, propertyId, imageIndex);
 
-            const url = await uploadToS3(buffer, key, file.type);
-            return url;
+            return await uploadToS3(buffer, key, file.type);
         });
 
         try {
