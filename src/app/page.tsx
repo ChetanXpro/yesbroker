@@ -2,6 +2,7 @@
 import { useAuth } from "@/app/hook/useAuth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import Image from "next/image";
 
 export default function Home() {
     const router = useRouter();
@@ -16,10 +17,7 @@ export default function Home() {
             <header className="container mx-auto px-6 py-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                        <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
-                            <span className="text-white font-bold text-lg">YB</span>
-                        </div>
-                        <span className="text-2xl font-bold text-gray-800">YesBroker</span>
+                        <img src={"/assets/logo.png"} alt={"Logo"} className="w-50" />
                     </div>
                 </div>
             </header>
