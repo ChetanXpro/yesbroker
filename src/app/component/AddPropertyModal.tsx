@@ -423,7 +423,10 @@ export function AddPropertyModal({ onClose, onSubmit }: any) {
                                     verification. This step is required to complete your listing.</p>
                             </div>
 
-                            <PropertyDocumentUpload onDocumentVerified={handleDocumentVerified} />
+                            <PropertyDocumentUpload
+                                onDocumentVerified={handleDocumentVerified}
+                                propertyId={createdPropertyId}
+                            />
 
                             {documentVerification && (
                                 <div className="mt-6">

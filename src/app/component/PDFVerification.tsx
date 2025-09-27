@@ -218,52 +218,50 @@ export function VerificationStatus({ verificationResult, fileName }: any) {
 }
 
 // Simple Property Document Upload Component (for your modal)
-export function PropertyDocumentUpload({ onDocumentVerified }: any) {
+export function PropertyDocumentUpload({ onDocumentVerified, propertyId }: any) {
     const [verificationData, setVerificationData] = useState<any>(null);
     const [proofData, setProofData] = useState<string | null>(null);
     const [proofLoading, setProofLoading] = useState(false);
     const [proofError, setProofError] = useState<string | null>(null);
 
-    const handleGenerateProof = async (verificationResult: any) => {
-        if (!verificationData?.buffer) return;
-
-        setProofLoading(true);
-        setProofError(null);
-        setProofData(null);
-
-        try {
-            const response = await fetch("http://localhost:3001/prove", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    pdf_bytes: Array.from(verificationData.buffer),
-                    page_number: 0,
-                    offset: 0,
-                    sub_string: verificationData.extractedText[0]?.substring(0, 50) || "Property",
-                }),
-            });
-
-            if (!response.ok) throw new Error(`Status ${response.status}`);
-
-            const data = await response.json();
-            setProofData(JSON.stringify(data, null, 2));
-        } catch (error: any) {
-            if (error.message.includes("fetch") || error.message.includes("Failed to fetch")) {
-                setProofError("Prover API not running. Start the prover server on port 3001.");
-            } else {
-                setProofError(error.message);
-            }
-        } finally {
-            setProofLoading(false);
-        }
-    };
 
     const handleFileProcessed = useCallback(
-        (data: any) => {
+        async (data: any) => {
             setVerificationData(data);
             onDocumentVerified?.(data);
+
+            // Automatically generate proof if document is valid
+            if (data.isValid && data.buffer) {
+                setProofLoading(true);
+                setProofError(null);
+                setProofData(null);
+
+                try {
+                    const response = await fetch(`${process.env.NEXT_PUBLIC_PROOF_API_BASE_URL || 'https://rhode-leslie-bags-chicken.trycloudflare.com'}/prove`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            pdf_bytes: Array.from(data.buffer),
+                            property_id: propertyId?.toString() || "1"
+                        }),
+                    });
+
+                    if (!response.ok) throw new Error(`Status ${response.status}`);
+
+                    const proofResult = await response.json();
+                    setProofData(JSON.stringify(proofResult, null, 2));
+                } catch (error: any) {
+                    if (error.message.includes("fetch") || error.message.includes("Failed to fetch")) {
+                        setProofError("Prover API not running. Start the prover server.");
+                    } else {
+                        setProofError(error.message);
+                    }
+                } finally {
+                    setProofLoading(false);
+                }
+            }
         },
-        [onDocumentVerified]
+        [onDocumentVerified, propertyId]
     );
 
     return (
