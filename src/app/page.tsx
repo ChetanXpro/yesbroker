@@ -1,12 +1,33 @@
 "use client";
-import { useState } from "react";
+import { useAuth } from "@/app/hook/useAuth";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Home() {
-    const [showRoleSelection, setShowRoleSelection] = useState(false);
+    const { user, isLoading, logout } = useAuth();
+    const router = useRouter();
 
-    if (showRoleSelection) {
-        return <RoleSelection onBack={() => setShowRoleSelection(false)} />;
+    // If user is logged in, redirect to dashboard selection
+    useEffect(() => {
+        if (user && !isLoading) {
+            router.push("/dashboard");
+        }
+    }, [user, isLoading, router]);
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading...</p>
+                </div>
+            </div>
+        );
     }
+
+    const handleGetStarted = () => {
+        router.push("/auth");
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -19,12 +40,25 @@ export default function Home() {
                         </div>
                         <span className="text-2xl font-bold text-gray-800">YesBroker</span>
                     </div>
-                    <button
-                        onClick={() => setShowRoleSelection(true)}
-                        className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-                    >
-                        Get Started
-                    </button>
+
+                    {user ? (
+                        <div className="flex items-center space-x-4">
+                            <span className="text-sm text-gray-600">Welcome back!</span>
+                            <button
+                                onClick={logout}
+                                className="text-gray-500 hover:text-gray-700 text-sm"
+                            >
+                                Logout
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={handleGetStarted}
+                            className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+                        >
+                            Get Started
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -36,24 +70,73 @@ export default function Home() {
                         <span className="text-indigo-600"> Find Your Home</span>
                     </h1>
                     <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                        Connect directly with property owners. No middleman, no extra fees. Just
-                        transparent, verified property rentals.
+                        Connect directly with property owners. List your property or find your dream
+                        home. No middleman, no extra fees. Secure verification powered by Self
+                        Protocol.
                     </p>
 
-                    {/* CTA Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+                    {/* Single CTA */}
+                    <div className="mb-16">
                         <button
-                            onClick={() => setShowRoleSelection(true)}
-                            className="w-full sm:w-auto bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-indigo-700 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                            onClick={handleGetStarted}
+                            className="bg-indigo-600 text-white px-12 py-4 rounded-xl text-xl font-semibold hover:bg-indigo-700 transform hover:scale-105 transition-all duration-200 shadow-lg"
                         >
-                            List Your Property
+                            Get Started with Self Verification
                         </button>
-                        <button
-                            onClick={() => setShowRoleSelection(true)}
-                            className="w-full sm:w-auto bg-white text-indigo-600 px-8 py-4 rounded-xl text-lg font-semibold border-2 border-indigo-600 hover:bg-indigo-50 transform hover:scale-105 transition-all duration-200 shadow-lg"
-                        >
-                            Find Properties
-                        </button>
+                        <p className="text-sm text-gray-500 mt-4">
+                            Verify your identity first, then choose to list or rent properties
+                        </p>
+                    </div>
+
+                    {/* Quick Preview of Actions */}
+                    <div className="grid md:grid-cols-2 gap-8 mt-16 max-w-3xl mx-auto">
+                        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-white/50">
+                            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                                <svg
+                                    className="w-6 h-6 text-green-600"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                                    ></path>
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-800 mb-2">
+                                List Your Property
+                            </h3>
+                            <p className="text-gray-600 text-sm">
+                                Upload property documents with zkPDF verification
+                            </p>
+                        </div>
+
+                        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-white/50">
+                            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                                <svg
+                                    className="w-6 h-6 text-blue-600"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                    ></path>
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-800 mb-2">
+                                Find Properties
+                            </h3>
+                            <p className="text-gray-600 text-sm">
+                                Browse verified listings from trusted owners
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -71,14 +154,16 @@ export default function Home() {
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
                                     strokeWidth="2"
-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    d="M9 12l2 2 4-4m5.25-4.5L12 3l-9.75 8.25L3 11.25l9-8.25 9 8.25-0.75 0.75z"
                                 ></path>
                             </svg>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-800 mb-4">Verified Owners</h3>
+                        <h3 className="text-xl font-bold text-gray-800 mb-4">
+                            Self Protocol Verified
+                        </h3>
                         <p className="text-gray-600">
-                            All property owners go through KYC verification and property ownership
-                            verification.
+                            All users verified through Self Protocol's zero-knowledge identity
+                            verification. No fake profiles, complete privacy protection.
                         </p>
                     </div>
 
@@ -98,10 +183,10 @@ export default function Home() {
                                 ></path>
                             </svg>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-800 mb-4">No Broker Fees</h3>
+                        <h3 className="text-xl font-bold text-gray-800 mb-4">Zero Fees</h3>
                         <p className="text-gray-600">
-                            Connect directly with property owners. Save thousands in broker
-                            commissions.
+                            No broker commissions, no hidden charges. Direct connection between
+                            property owners and renters.
                         </p>
                     </div>
 
@@ -117,252 +202,50 @@ export default function Home() {
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
                                     strokeWidth="2"
-                                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                                    d="M9 12V8.5a2.5 2.5 0 115 0V12m-7.5 0h7.5m-7.5 0v8a2 2 0 002 2h3.5a2 2 0 002-2v-8"
                                 ></path>
                             </svg>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-800 mb-4">Instant Connect</h3>
+                        <h3 className="text-xl font-bold text-gray-800 mb-4">zkPDF Verification</h3>
                         <p className="text-gray-600">
-                            Express interest and get direct contact with property owners
-                            immediately.
+                            Property documents verified using zero-knowledge proofs. Cryptographic
+                            security without revealing sensitive data.
                         </p>
                     </div>
                 </div>
 
                 {/* Stats Section */}
                 <div className="mt-20 text-center">
+                    <h2 className="text-3xl font-bold text-gray-800 mb-8">Why Choose YesBroker?</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                         <div>
-                            <div className="text-3xl font-bold text-indigo-600">1000+</div>
-                            <div className="text-gray-600">Properties Listed</div>
+                            <div className="text-3xl font-bold text-indigo-600">100%</div>
+                            <div className="text-gray-600">Verified Users</div>
                         </div>
                         <div>
-                            <div className="text-3xl font-bold text-indigo-600">500+</div>
-                            <div className="text-gray-600">Verified Owners</div>
+                            <div className="text-3xl font-bold text-indigo-600">0%</div>
+                            <div className="text-gray-600">Broker Fees</div>
                         </div>
                         <div>
-                            <div className="text-3xl font-bold text-indigo-600">2000+</div>
-                            <div className="text-gray-600">Happy Renters</div>
+                            <div className="text-3xl font-bold text-indigo-600">zkProof</div>
+                            <div className="text-gray-600">Document Security</div>
                         </div>
                         <div>
-                            <div className="text-3xl font-bold text-indigo-600">₹50L+</div>
-                            <div className="text-gray-600">Savings in Broker Fees</div>
+                            <div className="text-3xl font-bold text-indigo-600">Direct</div>
+                            <div className="text-gray-600">Owner Contact</div>
                         </div>
+                    </div>
+                </div>
+
+                {/* Self Protocol Badge */}
+                <div className="mt-16 text-center">
+                    <div className="inline-flex items-center px-6 py-3 bg-white/80 backdrop-blur-sm rounded-full shadow-lg border border-white/50">
+                        <span className="text-sm text-gray-600 mr-2">Secured by</span>
+                        <span className="font-bold text-gray-800">Self Protocol</span>
+                        <div className="w-2 h-2 bg-green-500 rounded-full ml-2"></div>
                     </div>
                 </div>
             </main>
-        </div>
-    );
-}
-
-function RoleSelection({ onBack }: { onBack: () => void }) {
-    const [selectedRole, setSelectedRole] = useState(null);
-
-    const handleRoleSelect = (role: any) => {
-        setSelectedRole(role);
-        // In real app, this would navigate to registration
-        setTimeout(() => {
-            alert(`Selected: ${role}. Next: Registration screen!`);
-        }, 500);
-    };
-
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-6">
-            <div className="max-w-4xl w-full">
-                {/* Back Button */}
-                <button
-                    onClick={onBack}
-                    className="mb-8 flex items-center text-gray-600 hover:text-gray-800 transition-colors"
-                >
-                    <svg
-                        className="w-5 h-5 mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M15 19l-7-7 7-7"
-                        ></path>
-                    </svg>
-                    Back to Home
-                </button>
-
-                <div className="text-center mb-12">
-                    <h2 className="text-4xl font-bold text-gray-800 mb-4">Choose Your Role</h2>
-                    <p className="text-xl text-gray-600">
-                        Are you looking to rent out your property or find a place to rent?
-                    </p>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-8">
-                    {/* Property Owner Card */}
-                    <div
-                        className={`bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 cursor-pointer border-4 ${
-                            selectedRole === "owner" ? "border-indigo-500" : "border-transparent"
-                        }`}
-                        onClick={() => handleRoleSelect("owner")}
-                    >
-                        <div className="text-center">
-                            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <svg
-                                    className="w-10 h-10 text-green-600"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                                    ></path>
-                                </svg>
-                            </div>
-                            <h3 className="text-2xl font-bold text-gray-800 mb-4">
-                                Property Owner
-                            </h3>
-                            <p className="text-gray-600 mb-6">
-                                List your properties and connect directly with verified renters
-                            </p>
-
-                            <div className="text-left space-y-3">
-                                <div className="flex items-center">
-                                    <svg
-                                        className="w-5 h-5 text-green-500 mr-3"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                    >
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clipRule="evenodd"
-                                        ></path>
-                                    </svg>
-                                    <span className="text-gray-700">List unlimited properties</span>
-                                </div>
-                                <div className="flex items-center">
-                                    <svg
-                                        className="w-5 h-5 text-green-500 mr-3"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                    >
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clipRule="evenodd"
-                                        ></path>
-                                    </svg>
-                                    <span className="text-gray-700">
-                                        View all interested renters
-                                    </span>
-                                </div>
-                                <div className="flex items-center">
-                                    <svg
-                                        className="w-5 h-5 text-green-500 mr-3"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                    >
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clipRule="evenodd"
-                                        ></path>
-                                    </svg>
-                                    <span className="text-gray-700">Direct communication</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Renter Card */}
-                    <div
-                        className={`bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 cursor-pointer border-4 ${
-                            selectedRole === "renter" ? "border-indigo-500" : "border-transparent"
-                        }`}
-                        onClick={() => handleRoleSelect("renter")}
-                    >
-                        <div className="text-center">
-                            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <svg
-                                    className="w-10 h-10 text-blue-600"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                                    ></path>
-                                </svg>
-                            </div>
-                            <h3 className="text-2xl font-bold text-gray-800 mb-4">Renter</h3>
-                            <p className="text-gray-600 mb-6">
-                                Find your perfect home directly from verified property owners
-                            </p>
-
-                            <div className="text-left space-y-3">
-                                <div className="flex items-center">
-                                    <svg
-                                        className="w-5 h-5 text-blue-500 mr-3"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                    >
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clipRule="evenodd"
-                                        ></path>
-                                    </svg>
-                                    <span className="text-gray-700">
-                                        Browse verified properties
-                                    </span>
-                                </div>
-                                <div className="flex items-center">
-                                    <svg
-                                        className="w-5 h-5 text-blue-500 mr-3"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                    >
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clipRule="evenodd"
-                                        ></path>
-                                    </svg>
-                                    <span className="text-gray-700">
-                                        Connect with owners instantly
-                                    </span>
-                                </div>
-                                <div className="flex items-center">
-                                    <svg
-                                        className="w-5 h-5 text-blue-500 mr-3"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                    >
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                            clipRule="evenodd"
-                                        ></path>
-                                    </svg>
-                                    <span className="text-gray-700">Save on broker fees</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="text-center mt-8">
-                    <p className="text-gray-500">
-                        You can always switch roles later in your profile settings
-                    </p>
-                </div>
-            </div>
         </div>
     );
 }
