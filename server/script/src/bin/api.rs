@@ -6,58 +6,13 @@ use axum::{
 };
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
-use sp1_sdk::{
-    include_elf, EnvProver, ProverClient, SP1ProofWithPublicValues, SP1ProvingKey, SP1Stdin,
-};
+use sp1_sdk::{include_elf, ProverClient, SP1ProofWithPublicValues, SP1Stdin};
 use sp1_sdk::{HashableKey, SP1VerifyingKey};
 use std::net::SocketAddr;
 use std::path::PathBuf;
-use std::sync::Arc;
 use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use zkpdf_template_lib::PublicValuesStruct;
-
-use alloy::{
-    primitives::{Address, Bytes},
-    providers::{Provider, ProviderBuilder},
-    sol,
-    transports::http::{Http},
-};
-use std::str::FromStr;
-
-// Define the contract interface using Alloy's sol! macro
-sol! {
-    #[allow(missing_docs)]
-    #[sol(rpc)]
-    contract PdfVerifier {
-        struct PublicValuesStruct {
-            bool result;
-        }
-
-        function verifyPdfProof(
-            bytes calldata _publicValues,
-            bytes calldata _proofBytes
-        ) public view returns (bool);
-    }
-}
-
-async fn verify_with_raw_hex(
-    provider_url: &str,
-    contract_address: &str,
-    public_values_hex: &str,
-    proof_bytes_hex: &str,
-) -> Result<bool, Box<dyn std::error::Error>> {
-    let provider = ProviderBuilder::new().on_http(provider_url.parse()?);
-
-    let contract_addr = Address::from_str(contract_address)?;
-    let contract = PdfVerifier::new(contract_addr, &provider);
-
-    let public_values = Bytes::from_str(public_values_hex)?;
-    let proof_bytes = Bytes::from_str(proof_bytes_hex)?;
-
-    let result = contract.verifyPdfProof(public_values, proof_bytes).call().await?;
-    Ok(result._0)
-}
 
 pub const ZKPDF_ELF: &[u8] = include_elf!("zkpdf-template-program");
 
@@ -93,32 +48,10 @@ struct SP1PropertyProofFixture {
     proof: String,
 }
 
-async fn prove_and_register(
-    Json(body): Json<ProofRequest>,
-) -> Result<Json<SP1ProofWithPublicValues>, String> {
+async fn prove(Json(body): Json<ProofRequest>) -> Result<Json<SP1ProofWithPublicValues>, String> {
     let client = ProverClient::from_env();
     let (pk, vk) = client.setup(ZKPDF_ELF);
-    let proof = prove(Json(body), pk, client).await?;
-    let fixture = create_proof_fixture(&proof, &vk, ProofSystem::Groth16)?;
-    match verify_with_raw_hex(
-        &std::env::var("RPC_URL").expect("Failed to read RPC_URL env variable"),
-        &std::env::var("VERIFIER_CONTRACT").expect("Failed to read VERIFIER_CONTRACT env variable"),
-        &fixture.public_values,
-        &fixture.proof,
-    )
-    .await
-    .expect("failed to verify proof on chain")
-    {
-        true => Ok(proof),
-        false => Err(String::from("Proof verification failed on chain")),
-    }
-}
 
-async fn prove(
-    Json(body): Json<ProofRequest>,
-    pk: SP1ProvingKey,
-    client: EnvProver,
-) -> Result<Json<SP1ProofWithPublicValues>, String> {
     let ProofRequest { pdf_bytes } = body;
 
     let mut stdin = SP1Stdin::new();
@@ -129,6 +62,8 @@ async fn prove(
         .groth16()
         .run()
         .map_err(|e| format!("Proof generation failed: {}", e))?;
+
+    create_proof_fixture(&proof, &vk, ProofSystem::Groth16);
 
     Ok(Json(proof))
 }
@@ -176,7 +111,6 @@ async fn main() {
         .route("/", get(index))
         .route("/prove", post(prove))
         .route("/verify", post(verify))
-        .route("/proof_and_register", post(prove_and_register))
         .layer(cors);
 
     let port: u16 = std::env::var("PORT")
@@ -196,7 +130,7 @@ fn create_proof_fixture(
     proof: &SP1ProofWithPublicValues,
     vk: &SP1VerifyingKey,
     system: ProofSystem,
-) -> Result<SP1PropertyProofFixture, String> {
+) {
     // Deserialize the public values.
     let bytes = proof.public_values.as_slice();
     let decoded = PublicValuesStruct::abi_decode(bytes).unwrap();
@@ -235,6 +169,4 @@ fn create_proof_fixture(
         serde_json::to_string_pretty(&fixture).unwrap(),
     )
     .expect("failed to write fixture");
-
-    Ok(fixture)
 }
