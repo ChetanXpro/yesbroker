@@ -12,9 +12,13 @@
     "dependencies": {
         "@aws-sdk/client-s3": "^3.896.0",
         "@aws-sdk/s3-request-presigner": "^3.896.0",
+        "@selfxyz/core": "1.1.0-beta.6",
+        "@selfxyz/qrcode": "^1.0.15",
         "@types/multer": "^2.0.0",
         "@types/pg": "^8.15.5",
         "dotenv": "^17.2.2",
+        "ethers": "^6.15.0",
+        "jsonwebtoken": "^9.0.2",
         "multer": "^2.0.2",
         "next": "15.5.4",
         "pg": "^8.16.3",
