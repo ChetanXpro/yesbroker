@@ -21,6 +21,7 @@ export default function OwnerDashboard() {
 
     useEffect(() => {
         fetchMyProperties();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
 
     const fetchMyProperties = async () => {

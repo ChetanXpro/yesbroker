@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { SelfQRcodeWrapper, SelfAppBuilder, type SelfApp } from "@selfxyz/qrcode";
@@ -43,6 +44,7 @@ export default function SelfLogin() {
         if (isWalletConnected && walletAddress) {
             checkVerificationStatus();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isWalletConnected, walletAddress, userType]);
 
     const checkVerificationStatus = async () => {
