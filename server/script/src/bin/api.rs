@@ -1,4 +1,13 @@
 use alloy_sol_types::SolType;
+use alloy::{
+    network::EthereumWallet,
+    primitives::{Address, Bytes, U256},
+    providers::{Provider, ProviderBuilder},
+    rpc::types::TransactionReceipt,
+    signers::{local::PrivateKeySigner, Signer},
+    sol,
+    transports::http::{Client, Http},
+};
 use axum::{
     response::Html,
     routing::{get, post},
@@ -9,12 +18,22 @@ use serde::{Deserialize, Serialize};
 use sp1_sdk::{include_elf, ProverClient, SP1ProofWithPublicValues, SP1Stdin};
 use sp1_sdk::{HashableKey, SP1VerifyingKey};
 use std::net::SocketAddr;
-use std::path::PathBuf;
 use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use zkpdf_template_lib::PublicValuesStruct;
 
 pub const ZKPDF_ELF: &[u8] = include_elf!("zkpdf-template-program");
+
+// Define the contract interface using alloy's sol! macro
+sol! {
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    contract GSTVerifier {
+        function verifyAndStoreProperty(bytes calldata _publicValues, bytes calldata _proofBytes)
+            external
+            returns (string memory, string memory, bool, bytes32, bytes32);
+    }
+}
 
 #[derive(Deserialize)]
 struct ProofRequest {
@@ -34,19 +53,6 @@ enum ProofSystem {
     Groth16,
 }
 
-/// A fixture that can be used to test the verification of SP1 zkVM proofs inside Solidity.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct SP1PropertyProofFixture {
-    property_number: String,
-    owner_name: String,
-    signature_valid: bool,
-    document_commitment: String,
-    public_key_hash: String,
-    vkey: String,
-    public_values: String,
-    proof: String,
-}
 
 async fn prove(Json(body): Json<ProofRequest>) -> Result<Json<SP1ProofWithPublicValues>, String> {
     let client = ProverClient::from_env();
@@ -63,7 +69,17 @@ async fn prove(Json(body): Json<ProofRequest>) -> Result<Json<SP1ProofWithPublic
         .run()
         .map_err(|e| format!("Proof generation failed: {}", e))?;
 
-    create_proof_fixture(&proof, &vk, ProofSystem::Groth16);
+    // Call the contract to verify and store the property proof
+    match verify_and_store_property(&proof, &vk, ProofSystem::Groth16).await {
+        Ok(receipt) => {
+            println!("✅ Successfully verified and stored property proof on-chain!");
+            println!("   Transaction Hash: {:?}", receipt.transaction_hash);
+        }
+        Err(e) => {
+            println!("❌ Failed to verify and store property proof: {}", e);
+            return Err(format!("Contract interaction failed: {}", e));
+        }
+    }
 
     Ok(Json(proof))
 }
@@ -96,6 +112,9 @@ async fn main() {
     let prover = std::env::var("SP1_PROVER").unwrap_or_default();
     let key = std::env::var("NETWORK_PRIVATE_KEY").unwrap_or_default();
 
+    println!("prover: {}", prover);
+    println!("key: {}", key);
+
     assert_eq!(prover, "network", "SP1_PROVER must be set to 'network'");
     assert!(
         key.starts_with("0x") && key.len() > 10,
@@ -125,48 +144,84 @@ async fn main() {
     serve(listener, app.into_make_service()).await.unwrap();
 }
 
-/// Create a fixture for the given proof.
-fn create_proof_fixture(
+/// Call the contract to verify and store the property proof.
+async fn verify_and_store_property(
     proof: &SP1ProofWithPublicValues,
     vk: &SP1VerifyingKey,
     system: ProofSystem,
-) {
+) -> Result<TransactionReceipt, Box<dyn std::error::Error>> {
     // Deserialize the public values.
     let bytes = proof.public_values.as_slice();
     let decoded = PublicValuesStruct::abi_decode(bytes).unwrap();
 
-    // Create the testing fixture so we can test things end-to-end.
-    let fixture = SP1PropertyProofFixture {
-        property_number: decoded.property_number,
-        owner_name: decoded.owner_name,
-        signature_valid: decoded.signature_valid,
-        document_commitment: format!("0x{}", hex::encode(decoded.document_commitment.as_slice())),
-        public_key_hash: format!("0x{}", hex::encode(decoded.public_key_hash.as_slice())),
-        vkey: vk.bytes32().to_string(),
-        public_values: format!("0x{}", hex::encode(bytes)),
-        proof: format!("0x{}", hex::encode(proof.bytes())),
-    };
-
-    // The verification key is used to verify that the proof corresponds to the execution of the
-    // program on the given input.
-    println!("Verification Key: {}", fixture.vkey);
+    // Print the values for logging
+    println!("Verification Key: {}", vk.bytes32().to_string());
     println!(
-        "Property Number: {}\nOwner Name: {}\nSignature Valid: {}\nDocument Commitment: {}\nPublic Key Hash: {}",
-        fixture.property_number,
-        fixture.owner_name,
-        fixture.signature_valid,
-        fixture.document_commitment,
-        fixture.public_key_hash
+        "Property Number: {}\nOwner Name: {}\nSignature Valid: {}\nDocument Commitment: 0x{}\nPublic Key Hash: 0x{}",
+        decoded.property_number,
+        decoded.owner_name,
+        decoded.signature_valid,
+        hex::encode(decoded.document_commitment.as_slice()),
+        hex::encode(decoded.public_key_hash.as_slice())
     );
-    println!("Public Values: {}", fixture.public_values);
-    println!("Proof Bytes: {}", fixture.proof);
+    println!("Public Values: 0x{}", hex::encode(bytes));
+    println!("Proof Bytes: 0x{}", hex::encode(proof.bytes()));
 
-    // Save the fixture to a file.
-    let fixture_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../contracts/src/fixtures");
-    std::fs::create_dir_all(&fixture_path).expect("failed to create fixture path");
-    std::fs::write(
-        fixture_path.join(format!("{:?}-fixture.json", system).to_lowercase()),
-        serde_json::to_string_pretty(&fixture).unwrap(),
-    )
-    .expect("failed to write fixture");
+    // Get contract address, RPC URL, and private key from environment variables
+    let contract_address = std::env::var("CONTRACT_ADDRESS")
+        .expect("CONTRACT_ADDRESS environment variable not set")
+        .parse::<Address>()?;
+    
+    let rpc_url = std::env::var("RPC_URL")
+        .unwrap_or_else(|_| "http://localhost:8545".to_string());
+
+    let private_key = std::env::var("PRIVATE_KEY")
+        .unwrap_or_else(|_| "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80".to_string());
+
+    // Create signer from private key
+    let signer: PrivateKeySigner = private_key.parse()
+        .map_err(|e| format!("Invalid private key: {}", e))?;
+
+    // Create provider with signer
+    let wallet = EthereumWallet::from(signer);
+    let provider = ProviderBuilder::new()
+        .with_recommended_fillers()
+        .wallet(wallet)
+        .on_http(rpc_url.parse()?);
+
+    // Create contract instance
+    let contract = GSTVerifier::new(contract_address, provider);
+
+    // Prepare the call data
+    let public_values = Bytes::from(bytes.to_vec());
+    let proof_bytes = Bytes::from(proof.bytes().to_vec());
+
+    // Call the contract function
+    println!("Calling contract at address: {}", contract_address);
+    let call = contract.verifyAndStoreProperty(public_values, proof_bytes);
+    
+    // Execute the transaction
+    println!("Sending transaction to blockchain...");
+    let pending_tx = call.send().await
+        .map_err(|e| format!("Failed to send transaction: {}", e))?;
+    
+    println!("Transaction sent! Hash: {:?}", pending_tx.tx_hash());
+    
+    // Wait for the transaction to be mined
+    let receipt = pending_tx.get_receipt().await
+        .map_err(|e| format!("Failed to get transaction receipt: {}", e))?;
+    
+    println!("Transaction successful!");
+    println!("  Transaction Hash: {:?}", receipt.transaction_hash);
+    println!("  Block Number: {:?}", receipt.block_number);
+    println!("  Gas Used: {:?}", receipt.gas_used);
+    
+    if receipt.status() {
+        println!("  Status: Success ✅");
+    } else {
+        println!("  Status: Failed ❌");
+        return Err("Transaction failed on-chain".into());
+    }
+    
+    Ok(receipt)
 }

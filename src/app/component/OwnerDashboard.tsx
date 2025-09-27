@@ -1,9 +1,9 @@
-// components/OwnerDashboard.tsx
 "use client";
 import { useState, useEffect } from "react";
 import { useAtom } from "jotai";
 
 import { AddPropertyModal } from "@/app/component/AddPropertyModal";
+import { InterestsModal } from "@/app/component/InterestsModal";
 import { userAtom } from "@/app/atoms/auth";
 import { api, Property } from "@/app/libs/api";
 
@@ -12,6 +12,8 @@ export default function OwnerDashboard() {
     const [properties, setProperties] = useState<Property[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+    const [showInterestsModal, setShowInterestsModal] = useState(false);
     const [stats, setStats] = useState({
         total: 0,
         available: 0,
@@ -37,7 +39,12 @@ export default function OwnerDashboard() {
                 // Calculate stats
                 setStats({
                     total: props.length,
-                    available: props.filter((p) => p.status === "available").length,
+                    available: props.filter(
+                        (p) =>
+                            p.status === "available" ||
+                            p.status === "for_sale" ||
+                            p.status === "for_rent"
+                    ).length,
                     rented: props.filter((p) => p.status === "rented").length,
                     interests: 0, // TODO: Add interests count from API
                 });
@@ -68,6 +75,16 @@ export default function OwnerDashboard() {
             console.error("Error adding property:", error);
             alert("Failed to add property");
         }
+    };
+
+    const handleViewInterests = (property: Property) => {
+        setSelectedProperty(property);
+        setShowInterestsModal(true);
+    };
+
+    const handleCloseInterestsModal = () => {
+        setShowInterestsModal(false);
+        setSelectedProperty(null);
     };
 
     if (loading) {
@@ -174,11 +191,13 @@ export default function OwnerDashboard() {
                                     </div>
                                     <div className="text-right">
                                         <p className="text-xl font-bold text-gray-900">
-                                            ₹{property.price}/month
+                                            ₹{property.price?.toLocaleString()}/month
                                         </p>
                                         <span
                                             className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                property.status === "available"
+                                                property.status === "available" ||
+                                                property.status === "for_sale" ||
+                                                property.status === "for_rent"
                                                     ? "bg-green-100 text-green-800"
                                                     : "bg-red-100 text-red-800"
                                             }`}
@@ -192,7 +211,10 @@ export default function OwnerDashboard() {
                                         Listed {new Date(property.created_at).toLocaleDateString()}
                                     </p>
                                     <div className="flex space-x-2">
-                                        <button className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
+                                        <button
+                                            onClick={() => handleViewInterests(property)}
+                                            className="text-indigo-600 hover:text-indigo-700 text-sm font-medium transition-colors"
+                                        >
                                             View Interests
                                         </button>
                                         <button className="text-gray-600 hover:text-gray-700 text-sm font-medium">
@@ -211,6 +233,15 @@ export default function OwnerDashboard() {
                 <AddPropertyModal
                     onClose={() => setShowAddModal(false)}
                     onSubmit={handleAddProperty}
+                />
+            )}
+
+            {/* Interests Modal */}
+            {showInterestsModal && selectedProperty && (
+                <InterestsModal
+                    propertyId={selectedProperty.id}
+                    propertyTitle={selectedProperty.title}
+                    onClose={handleCloseInterestsModal}
                 />
             )}
         </div>
