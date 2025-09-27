@@ -5,14 +5,7 @@ use axum::{
     serve, Json, Router,
 };
 use clap::ValueEnum;
-use ethers::{
-    contract::{abigen, Contract},
-    prelude::*,
-    providers::{Http, Provider},
-    types::{Address, Bytes},
-};
 use serde::{Deserialize, Serialize};
-use sp1_sdk::network::tee::client::Client;
 use sp1_sdk::{
     include_elf, EnvProver, ProverClient, SP1ProofWithPublicValues, SP1ProvingKey, SP1Stdin,
 };
@@ -24,35 +17,46 @@ use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use zkpdf_template_lib::PublicValuesStruct;
 
-// ABI for the PdfVerifier contract
-abigen!(
-    PdfVerifier,
-    r#"[
-        function verifyPdfProof(bytes calldata _publicValues, bytes calldata _proofBytes) public view returns (bool)
-    ]"#
-);
+use alloy::{
+    primitives::{Address, Bytes},
+    providers::{Provider, ProviderBuilder},
+    sol,
+    transports::http::{Http},
+};
+use std::str::FromStr;
 
-// Alternative function if you want to call with raw hex strings directly
+// Define the contract interface using Alloy's sol! macro
+sol! {
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    contract PdfVerifier {
+        struct PublicValuesStruct {
+            bool result;
+        }
+
+        function verifyPdfProof(
+            bytes calldata _publicValues,
+            bytes calldata _proofBytes
+        ) public view returns (bool);
+    }
+}
+
 async fn verify_with_raw_hex(
     provider_url: &str,
     contract_address: &str,
     public_values_hex: &str,
     proof_bytes_hex: &str,
 ) -> Result<bool, Box<dyn std::error::Error>> {
-    let provider = Provider::<Http>::try_from(provider_url)?;
-    let client = Arc::new(provider);
+    let provider = ProviderBuilder::new().on_http(provider_url.parse()?);
 
-    let contract_addr: Address = contract_address.parse()?;
-    let contract = PdfVerifier::new(contract_addr, client);
+    let contract_addr = Address::from_str(contract_address)?;
+    let contract = PdfVerifier::new(contract_addr, &provider);
 
-    let public_values: Bytes = public_values_hex.parse()?;
-    let proof_bytes: Bytes = proof_bytes_hex.parse()?;
+    let public_values = Bytes::from_str(public_values_hex)?;
+    let proof_bytes = Bytes::from_str(proof_bytes_hex)?;
 
-    let result = contract
-        .verify_pdf_proof(public_values, proof_bytes)
-        .call()
-        .await?;
-    Ok(result)
+    let result = contract.verifyPdfProof(public_values, proof_bytes).call().await?;
+    Ok(result._0)
 }
 
 pub const ZKPDF_ELF: &[u8] = include_elf!("zkpdf-template-program");
@@ -172,6 +176,7 @@ async fn main() {
         .route("/", get(index))
         .route("/prove", post(prove))
         .route("/verify", post(verify))
+        .route("/proof_and_register", post(prove_and_register))
         .layer(cors);
 
     let port: u16 = std::env::var("PORT")
