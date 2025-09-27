@@ -322,7 +322,7 @@ export function AdvancedPropertyVerification() {
                             <div className="space-y-3">
                                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                                     <p className="text-blue-800 text-sm">
-                                        <strong>Selected Text:</strong> "{selectedText}"
+                                        <strong>Selected Text:</strong> &quot;{selectedText}&quot;
                                     </p>
                                 </div>
 
