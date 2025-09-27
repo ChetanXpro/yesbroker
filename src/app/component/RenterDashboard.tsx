@@ -20,6 +20,7 @@ export default function RenterDashboard() {
     useEffect(() => {
         fetchProperties();
         fetchMyInterests();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filters]);
 
     const fetchProperties = async () => {

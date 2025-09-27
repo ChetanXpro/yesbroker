@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import pool from "../../../libs/db";
 
 // GET a single property by ID
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const id = params.id;
+        const { id } = await params;
 
         const query = "SELECT * FROM properties WHERE id = $1";
         const result = await pool.query(query, [id]);
@@ -39,9 +39,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PUT - Update a property
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const id = params.id;
+        const { id } = await params;
         const body = await request.json();
 
         // First check if property exists
@@ -187,9 +187,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE a property
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
     try {
-        const id = params.id;
+        const { id } = await params;
 
         const query = "DELETE FROM properties WHERE id = $1 RETURNING *";
         const result = await pool.query(query, [id]);
