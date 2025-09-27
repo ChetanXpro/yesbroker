@@ -231,6 +231,49 @@ export function VerificationStatus({ verificationResult, fileName }: any) {
 // Simple Property Document Upload Component (for your modal)
 export function PropertyDocumentUpload({ onDocumentVerified }: any) {
   const [verificationData, setVerificationData] = useState<any>(null);
+  const [proofData, setProofData] = useState<string | null>(null);
+  const [proofLoading, setProofLoading] = useState(false);
+  const [proofError, setProofError] = useState<string | null>(null);
+
+  const handleGenerateProof = async (verificationResult: any) => {
+    if (!verificationData?.buffer) return;
+
+    setProofLoading(true);
+    setProofError(null);
+    setProofData(null);
+
+    try {
+      const response = await fetch("http://localhost:3001/prove", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pdf_bytes: Array.from(verificationData.buffer),
+          page_number: 0,
+          offset: 0,
+          sub_string:
+            verificationData.extractedText[0]?.substring(0, 50) || "Property",
+        }),
+      });
+
+      if (!response.ok) throw new Error(`Status ${response.status}`);
+
+      const data = await response.json();
+      setProofData(JSON.stringify(data, null, 2));
+    } catch (error: any) {
+      if (
+        error.message.includes("fetch") ||
+        error.message.includes("Failed to fetch")
+      ) {
+        setProofError(
+          "Prover API not running. Start the prover server on port 3001."
+        );
+      } else {
+        setProofError(error.message);
+      }
+    } finally {
+      setProofLoading(false);
+    }
+  };
 
   const handleFileProcessed = useCallback(
     (data: any) => {
@@ -252,6 +295,54 @@ export function PropertyDocumentUpload({ onDocumentVerified }: any) {
           verificationResult={verificationData}
           fileName={verificationData.file?.name}
         />
+      )}
+
+      {/* Proof Generation Status */}
+      {proofLoading && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <svg
+              className="animate-spin h-5 w-5 text-blue-600 mr-2"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              ></path>
+            </svg>
+            <span className="text-blue-800 font-medium">
+              Generating zkProof...
+            </span>
+          </div>
+        </div>
+      )}
+
+      {proofError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-700 text-sm font-medium">
+            Proof Generation Error:
+          </p>
+          <p className="text-red-600 text-xs mt-1">{proofError}</p>
+        </div>
+      )}
+
+      {proofData && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <p className="text-gray-800 font-medium mb-2">Generated zkProof:</p>
+          <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto max-h-32">
+            {proofData}
+          </pre>
+        </div>
       )}
     </div>
   );

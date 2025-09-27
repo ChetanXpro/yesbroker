@@ -7,12 +7,12 @@ function PDFDropZone({
   onFileProcessed,
   accept = ".pdf",
   label = "Property Documents",
-}) {
+}: any) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<any>(null);
 
-  const processFile = async (file) => {
+  const processFile = async (file: any) => {
     if (!file || file.type !== "application/pdf") {
       setError("Please upload a PDF file");
       return;
@@ -39,21 +39,21 @@ function PDFDropZone({
         isValid: mockResult?.signature?.is_valid || false,
         extractedText: mockResult?.pages || [],
       });
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const onDrop = async (e) => {
+  const onDrop = async (e: any) => {
     e.preventDefault();
     setIsDragOver(false);
     const file = e.dataTransfer.files[0];
     if (file) await processFile(file);
   };
 
-  const onFileChange = async (e) => {
+  const onFileChange = async (e: any) => {
     const file = e.target.files?.[0];
     if (file) await processFile(file);
   };
@@ -147,7 +147,7 @@ function PDFDropZone({
   );
 }
 
-function VerificationStatus({ verificationResult, fileName }) {
+function VerificationStatus({ verificationResult, fileName }: any) {
   if (!verificationResult) return null;
 
   const { isValid, result } = verificationResult;

@@ -8,8 +8,12 @@
     "start": "next start"
   },
   "dependencies": {
+    "@selfxyz/core": "1.1.0-beta.6",
+    "@selfxyz/qrcode": "^1.0.15",
     "@types/pg": "^8.15.5",
     "dotenv": "^17.2.2",
+    "ethers": "^6.15.0",
+    "jsonwebtoken": "^9.0.2",
     "next": "15.5.4",
     "pg": "^8.16.3",
     "react": "19.1.0",
@@ -17,6 +21,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
