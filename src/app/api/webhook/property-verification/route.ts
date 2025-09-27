@@ -3,18 +3,20 @@ import pool from "../../../libs/db";
 
 interface WebhookPayload {
     status: string;
-    transactionHash?: string | null;
-    propertyId: string | number;
+    transaction_hash?: string | null;
+    property_id: string | number;
 }
 
 export async function POST(request: NextRequest) {
     try {
         const body: WebhookPayload = await request.json();
-        const { status, transactionHash, propertyId } = body;
+        const { status, transaction_hash, property_id } = body;
+
+        console.log(body);
 
         //
         // Validate required fields
-        https: if (!status || !propertyId) {
+        https: if (!status || !property_id) {
             return NextResponse.json(
                 {
                     success: false,
@@ -26,7 +28,7 @@ export async function POST(request: NextRequest) {
 
         // Check if property exists
         const checkQuery = "SELECT id FROM properties WHERE id = $1";
-        const checkResult = await pool.query(checkQuery, [propertyId]);
+        const checkResult = await pool.query(checkQuery, [property_id]);
 
         if (checkResult.rowCount === 0) {
             return NextResponse.json(
@@ -39,9 +41,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Handle different status cases
-        if (status.toLowerCase() === "success") {
+        if (status) {
             // For success, we expect a transaction hash
-            if (!transactionHash) {
+            if (!transaction_hash) {
                 return NextResponse.json(
                     {
                         success: false,
@@ -61,7 +63,7 @@ export async function POST(request: NextRequest) {
                 RETURNING id, is_verified, verification_transaction_hash
             `;
 
-            const result = await pool.query(updateQuery, [transactionHash, propertyId]);
+            const result = await pool.query(updateQuery, [transaction_hash, property_id]);
 
             return NextResponse.json(
                 {
@@ -82,7 +84,7 @@ export async function POST(request: NextRequest) {
                 RETURNING id, is_verified, verification_transaction_hash
             `;
 
-            const result = await pool.query(updateQuery, [transactionHash || null, propertyId]);
+            const result = await pool.query(updateQuery, [transaction_hash || null, property_id]);
 
             return NextResponse.json(
                 {
