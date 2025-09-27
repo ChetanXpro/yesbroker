@@ -5,9 +5,23 @@ import pool from "@/app/libs/db";
 
 const JWT_SECRET = process.env.JWT_SECRET || "hackathon-secret-key";
 
+const getVerifierUrl = () => {
+    // For Vercel deployments, use VERCEL_URL
+    if (process.env.VERCEL_URL) {
+        return `https://${process.env.VERCEL_URL}/api/verify`;
+    }
+
+    // For custom domain deployments
+    if (process.env.NEXT_PUBLIC_APP_URL) {
+        return `${process.env.NEXT_PUBLIC_APP_URL}/api/verify`;
+    }
+
+    // Fallback for local development
+    return "http://localhost:3000/api/verify";
+};
 const selfBackendVerifier = new SelfBackendVerifier(
     "self-workshop",
-    "https://needed-removing-scotia-hobbies.trycloudflare.com/api/verify",
+    getVerifierUrl(),
     false,
     AllIds,
     new DefaultConfigStore({
