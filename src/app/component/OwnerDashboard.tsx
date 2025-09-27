@@ -49,21 +49,13 @@ export default function OwnerDashboard() {
         }
     };
 
-    const handleAddProperty = async (propertyData: any) => {
+    const handleAddProperty = async (propertyData: Property) => {
         try {
             const propertyPayload = {
-                title: propertyData.title,
-                description: `${propertyData.bedrooms} BHK ${propertyData.propertyType}`,
-                address: propertyData.address,
-                city: propertyData.city,
-                state: "Karnataka", // Default or add to form
-                price: parseFloat(propertyData.rent),
-                bedrooms: parseInt(propertyData.bedrooms),
-                property_type: propertyData.propertyType,
-                status: "available",
+                is_doc_signed: true,
             };
 
-            const response = await api.createProperty(propertyPayload as any);
+            const response = await api.updateProperty(propertyData.id, propertyPayload as any);
 
             if (response.success) {
                 setShowAddModal(false);
@@ -130,7 +122,8 @@ export default function OwnerDashboard() {
 
                 {properties.length === 0 ? (
                     <div className="p-8 text-center">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <div
+                            className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <svg
                                 className="w-8 h-8 text-gray-400"
                                 fill="none"

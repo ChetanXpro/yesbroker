@@ -24,6 +24,9 @@ interface Property {
     image_urls?: string[];
     created_at: string;
     updated_at: string;
+    is_doc_signed: boolean;
+    is_verified: boolean;
+    verification_transaction_hash: string;
 }
 
 interface PropertyInterest {
@@ -112,7 +115,7 @@ class ApiClient {
     }
 
     async createProperty(
-        property: Omit<Property, "id" | "created_at" | "updated_at">
+        property: Omit<Property, "id" | "created_at" | "updated_at">,
     ): Promise<ApiResponse<Property>> {
         return this.request("/properties", {
             method: "POST",

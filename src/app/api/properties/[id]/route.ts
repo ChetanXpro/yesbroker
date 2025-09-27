@@ -15,7 +15,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
                     success: false,
                     error: "Property not found",
                 },
-                { status: 404 }
+                { status: 404 },
             );
         }
 
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
                 success: true,
                 data: result.rows[0],
             },
-            { status: 200 }
+            { status: 200 },
         );
     } catch (error) {
         console.error("Error fetching property:", error);
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
                 success: false,
                 error: "Failed to fetch property",
             },
-            { status: 500 }
+            { status: 500 },
         );
     }
 }
@@ -54,7 +54,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
                     success: false,
                     error: "Property not found",
                 },
-                { status: 404 }
+                { status: 404 },
             );
         }
 
@@ -72,6 +72,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             property_type,
             status,
             owner_id,
+            is_doc_signed,
+            is_verified,
+            verification_transaction_hash,
         } = body;
 
         const updateFields = [];
@@ -143,6 +146,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             values.push(owner_id);
             paramCount++;
         }
+        if (is_doc_signed !== undefined) {
+            updateFields.push(`is_doc_signed = $${paramCount}`);
+            values.push(is_doc_signed);
+            paramCount++;
+        }
+        if (is_verified !== undefined) {
+            updateFields.push(`is_verified = $${paramCount}`);
+            values.push(is_verified);
+            paramCount++;
+        }
+        if (verification_transaction_hash !== undefined) {
+            updateFields.push(`verification_transaction_hash = $${paramCount}`);
+            values.push(verification_transaction_hash);
+            paramCount++;
+        }
 
         if (updateFields.length === 0) {
             return NextResponse.json(
@@ -150,7 +168,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
                     success: false,
                     error: "No fields to update",
                 },
-                { status: 400 }
+                { status: 400 },
             );
         }
 
@@ -158,9 +176,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         values.push(id);
 
         const query = `
-      UPDATE properties
-      SET ${updateFields.join(", ")}
-      WHERE id = $${paramCount}
+            UPDATE properties
+            SET ${updateFields.join(", ")}
+            WHERE id = $${paramCount}
       RETURNING *
     `;
 
@@ -172,7 +190,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
                 data: result.rows[0],
                 message: "Property updated successfully",
             },
-            { status: 200 }
+            { status: 200 },
         );
     } catch (error) {
         console.error("Error updating property:", error);
@@ -181,7 +199,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
                 success: false,
                 error: "Failed to update property",
             },
-            { status: 500 }
+            { status: 500 },
         );
     }
 }
@@ -189,7 +207,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 // DELETE a property
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: Promise<{ id: string }> },
 ) {
     try {
         const { id } = await params;
@@ -203,7 +221,7 @@ export async function DELETE(
                     success: false,
                     error: "Property not found",
                 },
-                { status: 404 }
+                { status: 404 },
             );
         }
 
@@ -213,7 +231,7 @@ export async function DELETE(
                 message: "Property deleted successfully",
                 data: result.rows[0],
             },
-            { status: 200 }
+            { status: 200 },
         );
     } catch (error) {
         console.error("Error deleting property:", error);
@@ -222,7 +240,7 @@ export async function DELETE(
                 success: false,
                 error: "Failed to delete property",
             },
-            { status: 500 }
+            { status: 500 },
         );
     }
 }
