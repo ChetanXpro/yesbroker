@@ -108,14 +108,6 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Prevent owners from showing interest in their own properties
-        if (propertyCheck.rows[0].owner_id === user.userId) {
-            return NextResponse.json(
-                { success: false, error: "Cannot show interest in your own property" },
-                { status: 400 }
-            );
-        }
-
         // Check if user already showed interest
         const existingInterest = await pool.query(
             "SELECT id FROM property_interests WHERE property_id = $1 AND user_id = $2",
